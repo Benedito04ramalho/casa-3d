@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casa MCMV 42 m² — Obra em 3D</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f1ece2;--panel:#fbf8f2;--ink:#23201b;--mut:#7a7164;--line:#d9d0bf;--acc:#b5532f;--bar:#e6dfd0;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1c1a17;--panel:#252320;--ink:#ece6da;--mut:#9a9183;--line:#3a362f;--acc:#e08a60;--bar:#35312a}}
+:root[data-theme="dark"]{--bg:#1c1a17;--panel:#252320;--ink:#ece6da;--mut:#9a9183;--line:#3a362f;--acc:#e08a60;--bar:#35312a}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 "IBM Plex Mono",ui-monospace,Menlo,monospace;display:flex;flex-direction:column;overflow:hidden}
+h1,h2,h3,.hd{font-family:"Archivo Narrow","Arial Narrow",sans-serif;margin:0;letter-spacing:.02em}
+header{padding:10px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+header h1{font-size:20px;text-transform:uppercase}header span{color:var(--mut);font-size:12px}
+main{flex:1;min-height:0;display:grid;grid-template-columns:1fr 350px}
+#v{position:relative;min-height:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;background-position:-1px -1px}
+canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}
+.tools{position:absolute;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap}
+button{font:inherit;font-size:12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:5px 9px;cursor:pointer}
+button.on{background:var(--ink);color:var(--bg)}
+.lb{position:absolute;pointer-events:none;font-size:11px;background:var(--panel);border:1px solid var(--line);padding:1px 5px;transform:translate(-50%,-50%);white-space:nowrap}
+.hint{position:absolute;bottom:8px;left:8px;color:var(--mut);font-size:11px}
+#panel{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:14px 16px}
+h2{font-size:24px;text-transform:uppercase;line-height:1.1}h3{font-size:13px;text-transform:uppercase;color:var(--mut);margin:16px 0 6px}
+.big{font-size:26px;font-weight:500;color:var(--acc);margin:6px 0 2px}.mut{color:var(--mut);font-size:12px}
+.row{display:block;width:100%;text-align:left;padding:8px;margin-bottom:6px;border:1px solid var(--line);background:transparent}
+.row.sel{border-color:var(--acc);box-shadow:inset 3px 0 0 var(--acc)}
+.rt{display:flex;justify-content:space-between;gap:8px}.bar{height:4px;background:var(--bar);margin-top:5px}.bar i{display:block;height:100%;background:var(--acc)}
+dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12px}dt{color:var(--mut)}dd{margin:0}
+footer{border-top:1px solid var(--line);padding:8px 16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+footer input{flex:1;min-width:160px;accent-color:var(--acc)}#st{font-size:12px}
+@media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:46% 1fr}#panel{border-left:0;border-top:1px solid var(--line)}}
+</style></head><body>
+<header><h1>Casa MCMV · 42 m² · 7 ambientes</h1><span>SINAPI 07/2026 · térrea, fundação rasa</span></header>
+<main><div id="v"><canvas id="cv"></canvas>
+<div class="tools"><button id="bR" class="on">Telhado</button><button id="bL" class="on">Rótulos</button><button id="bT">Vista superior</button></div>
+<div class="hint">arraste = girar · roda/pinça = zoom · clique = detalhes</div></div>
+<aside id="panel"></aside></main>
+<footer><button id="pl">▶ Reproduzir obra</button><input id="sl" type="range" min="0" max="76" value="76"><span id="st"></span></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const BRL=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const U=s=>new Date(Date.UTC(1899,11,30)+s*864e5);
+const fd=(s,y)=>U(s).toLocaleDateString('pt-BR',{timeZone:'UTC',day:'2-digit',month:'2-digit',year:y?'numeric':undefined});
+const S0=46237,DAYS=76,CT=123085.52;
+// Cronograma (aba Cronograma): [nome, dia início, duração dc, custo]
+const PH=[['Administração',1,76,38709.40],['Preliminares e implantação',1,4,5965.76],['Movimento de terra',5,4,1688.92],['Fundação e estrutura',9,18,8805.23],['Impermeabilização',20,3,2306.32],['Alvenaria',27,14,15897.53],['Cobertura',36,7,9563.21],['Instalações elétricas',34,8,7067.41],['Instalações hidrossanitárias',34,8,7426.44],['Revestimentos',43,18,6751.35],['Pisos',54,10,6887.96],['Esquadrias',54,6,9429.80],['Pintura',64,10,2586.19]].map((p,i)=>({i:i+1,n:p[0],s:p[1],d:p[2],c:p[3],a:S0+p[1]-1,b:S0+p[1]+p[2]-2}));
+const ph=i=>PH[i-1];
+const prog=(i,d)=>{const p=ph(i);return Math.max(0,Math.min(1,(d-p.s+1)/p.d))};
+// Ambientes: id,nome,x,z,w,d,cor,dim,piso,paredes,teto,esquadrias,louças,direto,bdi,final, [cerâmica,arg.colante,rejunte,blocos,arg.assent,pintura]
+const R=[
+['sala','Sala / Jantar',0,0,3.6,3.2,'#d9a36b','3,60 x 3,20','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela de alumínio de correr 2 folhas + porta semi-oca 80x210','—',32414.00,4862.10,37276.10,[12.67,76,7,52,.25,35]],
+['coz','Cozinha',3.6,0,2.2,2.8,'#e0c068','2,20 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Cerâmica 20x20 até o teto + pintura nas demais áreas','Forro em réguas de PVC','Janela maximar em alumínio','Bancada de mármore sintético com cuba + torneira cromada',19374.28,2906.14,22280.42,[6.78,41,4,28,.13,22]],
+['as','Área de Serviço',5.8,0,1.4,2.8,'#8fb8a8','1,40 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Forro em réguas de PVC','Porta de madeira frisada 60x210','Tanque de mármore sintético suspenso + torneira plástica',11443.34,1716.50,13159.84,[4.31,26,3,18,.08,15]],
+['q1','Quarto 1 (Casal)',0,3.2,3.4,3.0,'#c98b8b','3,40 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela de correr 2 folhas + porta semi-oca 80x210 c/ fechadura','—',29112.75,4366.91,33479.66,[11.22,67,6,46,.22,32]],
+['q2','Quarto 2',4.8,2.8,2.2,3.0,'#8ea7c9','2,20 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela maximar + porta frisada 70x210 c/ fechadura','—',19725.68,2958.85,22684.54,[7.26,44,4,30,.14,23]],
+['ban','Banheiro',3.6,4.0,1.2,1.8,'#7fc0c8','1,20 x 1,80','Cerâmica 35x35 sobre contrapiso autonivelante','Revestimento cerâmico 20x20 na altura inteira','Forro em réguas de PVC','Porta frisada 60x210 c/ fechadura de banheiro','Vaso, lavatório suspenso, acessórios, registros e torneiras',8423.09,1263.46,9686.56,[2.38,15,2,10,.05,12]],
+['circ','Circulação',3.6,2.8,1.2,1.2,'#b9b2a3','1,20 x 1,20','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Laje com pintura látex acrílica','—','—',3865.37,579.81,4445.17,[1.58,10,1,7,.03,8]]
+].map(a=>({id:a[0],n:a[1],x:a[2],z:a[3],w:a[4],d:a[5],c:a[6],dim:a[7],piso:a[8],par:a[9],teto:a[10],esq:a[11],lou:a[12],dir:a[13],bdi:a[14],fin:a[15],q:a[16],area:+(a[4]*a[5]).toFixed(2)}));
+const AREA={sala:11.52,coz:6.16,as:3.92,q1:10.2,q2:6.6,ban:2.16,circ:1.44};R.forEach(r=>r.area=AREA[r.id]);
+// rateio gerencial por área (sem BDI) — itens da aba Orçamento
+function comps(r){const s=r.area/42,w=r.id=='coz'||r.id=='ban'?845.14:0;
+ const par=s*(11884.40+1191.63+2530.35)+w,piso=s*2300.98+(r.id=='ban'?1134.96:s*2611.72),teto=s*(2741.11+55.84),dem=r.dir-par-piso-teto;
+ return [['par','Paredes',par,'Alvenaria, chapisco/emboço, revestimento e pintura',[6,10,13]],['piso','Piso',piso,'Contrapiso e cerâmica',[11]],['teto','Teto / forro',teto,'Forro PVC/laje e pintura',[7,10]],['dem','Fundação, instalações e demais',dem,'Rateio de fundação, estrutura, cobertura, instalações, esquadrias e administração',[4,8,9,12]]]}
+let day=76,sel=null,part=null,roofOn=true,lblOn=true;
+// ---------- 3D ----------
+const cv=$('cv'),rd=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});rd.shadowMap.enabled=true;
+const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,.1,100);
+sc.add(new THREE.HemisphereLight(0xffffff,0x998877,.75));
+const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(8,14,5);sun.castShadow=true;sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sc.add(sun);
+const H=2.7,T=.1,CONC=new THREE.Color('#8d8a84'),BLK=new THREE.Color('#a39d92');
+const bx=(w,h,d,m)=>{const g=new THREE.BoxGeometry(w,h,d);g.translate(0,h/2,0);const o=new THREE.Mesh(g,m);o.castShadow=o.receiveShadow=true;return o};
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshLambertMaterial({color:0xb9aa8c}));gnd.rotation.x=-Math.PI/2;gnd.position.set(3.6,-.11,3.1);gnd.receiveShadow=true;sc.add(gnd);
+const pick=[],O={};
+R.forEach(r=>{const wm=new THREE.MeshLambertMaterial(),fm=new THREE.MeshLambertMaterial(),cx=r.x+r.w/2,cz=r.z+r.d/2;
+ const f=bx(r.w,.1,r.d,fm);f.geometry.translate(0,-.1,0);f.position.set(cx,0,cz);f.userData={id:r.id,part:'piso'};
+ const ws=[[r.w,T,cx,r.z+T/2],[r.w,T,cx,r.z+r.d-T/2],[T,r.d-2*T,r.x+T/2,cz],[T,r.d-2*T,r.x+r.w-T/2,cz]].map(a=>{const m=bx(a[0],H,a[1],wm);m.position.set(a[2],0,a[3]);m.userData={id:r.id,part:'par'};return m});
+ sc.add(f,...ws);pick.push(f,...ws);O[r.id]={r,f,ws,wm,fm};
+ const l=document.createElement('div');l.className='lb';l.textContent=r.n;$('v').appendChild(l);O[r.id].l=l;O[r.id].c=new THREE.Vector3(cx,.3,cz)});
+const fill=bx(.2,H,2.6,new THREE.MeshLambertMaterial({color:0xcfc8bb}));fill.position.set(3.5,0,4.5);sc.add(fill);
+const rm=new THREE.MeshLambertMaterial({color:0xa4472b,transparent:true,opacity:.5,side:THREE.DoubleSide}),roof=new THREE.Group(),a=Math.atan(1.1/3.4),sl=Math.hypot(3.4,1.1);
+[[-1,-a],[1,a]].forEach(([k,ang])=>{const p=new THREE.Mesh(new THREE.BoxGeometry(8,.06,sl),rm);p.position.set(3.6,H+.55,3.1+k*1.7);p.rotation.x=ang;roof.add(p)});sc.add(roof);
+let th=.9,phi=1,rad=15;const tg=new THREE.Vector3(3.6,.8,3.1);
+const setCam=()=>{cam.position.set(tg.x+rad*Math.sin(phi)*Math.sin(th),tg.y+rad*Math.cos(phi),tg.z+rad*Math.sin(phi)*Math.cos(th));cam.lookAt(tg)};
+function apply(){
+ const p=i=>prog(i,day);
+ Object.values(O).forEach(o=>{const sh=sel==o.r.id;
+  o.f.visible=p(4)>0;o.fm.color.copy(CONC).lerp(new THREE.Color(o.r.c).lerp(new THREE.Color('#fff'),.35),p(11));
+  o.ws.forEach(w=>{w.visible=p(6)>0;w.scale.y=Math.max(p(6),.001)});
+  o.wm.color.copy(BLK).lerp(new THREE.Color(o.r.c),p(13));
+  o.wm.emissive.setHex(sh?0x3a1d0c:0);o.fm.emissive.setHex(sh?0x3a1d0c:0)});
+ fill.visible=p(6)>0;fill.scale.y=Math.max(p(6),.001);
+ roof.visible=roofOn&&p(7)>0;rm.opacity=.55*p(7);
+ const spent=PH.reduce((s,x)=>s+x.c*prog(x.i,day),0),cur=U(S0+day-1);
+ $('st').textContent=day?`Dia ${day}/${DAYS} · ${fd(S0+day-1,1)} · executado ${BRL(spent)} (${(spent/CT*100).toFixed(0)}%)`:'Antes do início · '+fd(S0,1);
+ $('sl').value=day;panel()}
+// ---------- painel ----------
+const bar=p=>`<div class="bar"><i style="width:${(p*100).toFixed(0)}%"></i></div>`;
+function panel(){let h='';
+ if(!sel){h=`<h2>Obra inteira</h2><div class="big">${BRL(CT)}</div><div class="mut">custo direto do cronograma · ${DAYS} dias corridos · ${fd(S0,1)} → ${fd(S0+DAYS-1,1)}</div>
+ <h3>Ambientes (clique no modelo ou aqui)</h3>`+R.map(r=>`<button class="row" onclick="pickRoom('${r.id}')"><div class="rt"><b>${r.n}</b><span>${BRL(r.fin)}</span></div><div class="mut">${r.area.toFixed(2).replace('.',',')} m² · ${BRL(r.fin/r.area)}/m²</div></button>`).join('')+
+ `<h3>Etapas no dia ${day}</h3>`+PH.map(x=>`<div style="margin-bottom:8px"><div class="rt"><span>${x.n}</span><span>${BRL(x.c)}</span></div><div class="mut">${fd(x.a)} → ${fd(x.b)} · ${x.d} dc</div>${bar(prog(x.i,day))}</div>`).join('')}
+ else{const r=R.find(z=>z.id==sel),cs=comps(r);
+ h=`<button onclick="pickRoom(null)">← Obra inteira</button><h2 style="margin-top:10px">${r.n}</h2><div class="mut">${r.dim} m · ${r.area.toFixed(2).replace('.',',')} m²</div>
+ <div class="big">${BRL(r.fin)}</div><div class="mut">direto ${BRL(r.dir)} + BDI ${BRL(r.bdi)} · ${BRL(r.fin/r.area)}/m²</div><h3>Onde foi o dinheiro (sem BDI)</h3>`+
+ cs.map(c=>{const pr=c[4].reduce((s,i)=>s+prog(i,day),0)/c[4].length,ph2=c[4].map(i=>`${ph(i).n} ${fd(ph(i).a)}–${fd(ph(i).b)}`).join(' · ');
+  return `<div class="row ${part==c[0]?'sel':''}"><div class="rt"><b>${c[1]}</b><span>${BRL(c[2])}</span></div><div class="mut">${c[3]}</div><div class="mut">${ph2}</div>${bar(pr)}<div class="mut">executado hoje: ${BRL(c[2]*pr)} (${(pr*100).toFixed(0)}%)</div></div>`}).join('')+
+ `<div class="mut">Paredes, piso e teto = rateio gerencial por área; o restante fecha com o custo direto do ambiente.</div>
+ <h3>Acabamentos</h3><dl><dt>Piso</dt><dd>${r.piso}</dd><dt>Paredes</dt><dd>${r.par}</dd><dt>Teto</dt><dd>${r.teto}</dd><dt>Esquadrias</dt><dd>${r.esq}</dd><dt>Louças/metais</dt><dd>${r.lou}</dd></dl>
+ <h3>Quantidades estimadas</h3><dl><dt>Cerâmica c/ 10% perda</dt><dd>${r.q[0]} m²</dd><dt>Arg. colante</dt><dd>${r.q[1]} kg</dd><dt>Rejunte</dt><dd>${r.q[2]} kg</dd><dt>Blocos</dt><dd>${r.q[3]} un</dd><dt>Arg. assentamento</dt><dd>${r.q[4]} m³</dd><dt>Pintura paredes</dt><dd>${r.q[5]} m²</dd></dl>`}
+ $('panel').innerHTML=h}
+function pickRoom(id,pt){sel=id;part=pt||null;apply()}
+// ---------- interação ----------
+const P=new Map();let dn=null,pd=0;const pdist=()=>{const v=[...P.values()];return Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1])||1};
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);P.set(e.pointerId,[e.clientX,e.clientY]);dn=[e.clientX,e.clientY,Date.now()];if(P.size==2)pd=pdist()});
+cv.addEventListener('pointermove',e=>{const o=P.get(e.pointerId);if(!o)return;const dx=e.clientX-o[0],dy=e.clientY-o[1];P.set(e.pointerId,[e.clientX,e.clientY]);
+ if(P.size==1){th-=dx*.008;phi=Math.max(.15,Math.min(1.5,phi-dy*.006))}else if(P.size==2){const n=pdist();rad=Math.max(5,Math.min(30,rad*pd/n));pd=n}});
+cv.addEventListener('pointerup',e=>{const one=P.size==1;P.delete(e.pointerId);
+ if(one&&dn&&Math.hypot(e.clientX-dn[0],e.clientY-dn[1])<6&&Date.now()-dn[2]<600){const b=cv.getBoundingClientRect(),rc=new THREE.Raycaster();
+  rc.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
+  const h=rc.intersectObjects(pick.filter(m=>m.visible))[0];h?pickRoom(h.object.userData.id,h.object.userData.part):pickRoom(null)}});
+cv.addEventListener('pointercancel',e=>P.delete(e.pointerId));
+cv.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(5,Math.min(30,rad*(1+e.deltaY*.001)))},{passive:false});
+$('bR').onclick=e=>{roofOn=!roofOn;e.target.classList.toggle('on',roofOn);apply()};
+$('bL').onclick=e=>{lblOn=!lblOn;e.target.classList.toggle('on',lblOn)};
+$('bT').onclick=()=>{th=0;phi=.15};
+$('sl').oninput=e=>{day=+e.target.value;apply()};
+let tm=null;$('pl').onclick=()=>{if(tm){clearInterval(tm);tm=null;$('pl').textContent='▶ Reproduzir obra';return}
+ if(day>=DAYS)day=0;$('pl').textContent='❚❚ Pausar';tm=setInterval(()=>{day++;apply();if(day>=DAYS){clearInterval(tm);tm=null;$('pl').textContent='▶ Reproduzir obra'}},130)};
+function size(){const b=$('v').getBoundingClientRect();rd.setPixelRatio(Math.min(devicePixelRatio,2));rd.setSize(b.width,b.height,false);cam.aspect=b.width/b.height;cam.updateProjectionMatrix()}
+new ResizeObserver(size).observe($('v'));size();
+(function loop(){requestAnimationFrame(loop);setCam();rd.render(sc,cam);const b=$('v').getBoundingClientRect();
+ Object.values(O).forEach(o=>{o.l.style.display=lblOn&&o.f.visible?'block':'none';const v=o.c.clone().project(cam);o.l.style.left=(v.x+1)/2*b.width+'px';o.l.style.top=(1-v.y)/2*b.height+'px'})})();
+apply();
+</script></body></html>
