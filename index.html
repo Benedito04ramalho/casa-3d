@@ -19,7 +19,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor
 .tools{position:absolute;top:8px;left:8px;display:flex;gap:6px;flex-wrap:wrap}
 button{font:inherit;font-size:12px;background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:5px 9px;cursor:pointer}
 button.on{background:var(--ink);color:var(--bg)}
-.lb{position:absolute;pointer-events:none;font-size:11px;background:var(--panel);border:1px solid var(--line);padding:1px 5px;transform:translate(-50%,-50%);white-space:nowrap}
+.lb.ex{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.lb{position:absolute;pointer-events:none;font-size:10px;text-align:center;line-height:1.25;background:var(--panel);border:1px solid var(--line);padding:1px 5px;transform:translate(-50%,-50%);white-space:nowrap}
 .hint{position:absolute;bottom:8px;left:8px;color:var(--mut);font-size:11px}
 #panel{background:var(--panel);border-left:1px solid var(--line);overflow:auto;padding:14px 16px}
 h2{font-size:24px;text-transform:uppercase;line-height:1.1}h3{font-size:13px;text-transform:uppercase;color:var(--mut);margin:16px 0 6px}
@@ -32,9 +33,9 @@ footer{border-top:1px solid var(--line);padding:8px 16px;display:flex;gap:12px;a
 footer input{flex:1;min-width:160px;accent-color:var(--acc)}#st{font-size:12px}
 @media(max-width:760px){main{grid-template-columns:1fr;grid-template-rows:46% 1fr}#panel{border-left:0;border-top:1px solid var(--line)}}
 </style></head><body>
-<header><h1>Casa MCMV · 42 m² · 7 ambientes</h1><span>SINAPI 07/2026 · térrea, fundação rasa</span></header>
+<header><h1>Casa MCMV · 42 m² · 7 ambientes</h1><span>SINAPI 07/2026 · sem BDI · térrea, fundação rasa</span></header>
 <main><div id="v"><canvas id="cv"></canvas>
-<div class="tools"><button id="bR" class="on">Telhado</button><button id="bL" class="on">Rótulos</button><button id="bT">Vista superior</button></div>
+<div class="tools"><button id="bR" class="on">Telhado</button><button id="bL" class="on">Rótulos</button><button id="bT">Vista superior</button><button id="bA" style="border-left:4px solid #1f6fd1">Água fria</button><button id="bG" style="border-left:4px solid #8b5a2b">Esgoto</button><button id="bX" style="border-left:4px solid #e69f00">Elétrica</button></div>
 <div class="hint">arraste = girar · roda/pinça = zoom · clique = detalhes</div></div>
 <aside id="panel"></aside></main>
 <footer><button id="pl">▶ Reproduzir obra</button><input id="sl" type="range" min="0" max="76" value="76"><span id="st"></span></footer>
@@ -44,22 +45,32 @@ const $=id=>document.getElementById(id);
 const BRL=n=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const U=s=>new Date(Date.UTC(1899,11,30)+s*864e5);
 const fd=(s,y)=>U(s).toLocaleDateString('pt-BR',{timeZone:'UTC',day:'2-digit',month:'2-digit',year:y?'numeric':undefined});
-const S0=46237,DAYS=76,CT=123085.52;
+const S0=46237,DAYS=76,CT=126913.55;
 // Cronograma (aba Cronograma): [nome, dia início, duração dc, custo]
 const PH=[['Administração',1,76,38709.40],['Preliminares e implantação',1,4,5965.76],['Movimento de terra',5,4,1688.92],['Fundação e estrutura',9,18,8805.23],['Impermeabilização',20,3,2306.32],['Alvenaria',27,14,15897.53],['Cobertura',36,7,9563.21],['Instalações elétricas',34,8,7067.41],['Instalações hidrossanitárias',34,8,7426.44],['Revestimentos',43,18,6751.35],['Pisos',54,10,6887.96],['Esquadrias',54,6,9429.80],['Pintura',64,10,2586.19]].map((p,i)=>({i:i+1,n:p[0],s:p[1],d:p[2],c:p[3],a:S0+p[1]-1,b:S0+p[1]+p[2]-2}));
+PH.push({i:14,n:'ART e documentação (complemento ao total)',s:1,d:1,c:+(CT-PH.reduce((a,x)=>a+x.c,0)).toFixed(2),a:S0,b:S0});
 const ph=i=>PH[i-1];
 const prog=(i,d)=>{const p=ph(i);return Math.max(0,Math.min(1,(d-p.s+1)/p.d))};
 // Ambientes: id,nome,x,z,w,d,cor,dim,piso,paredes,teto,esquadrias,louças,direto,bdi,final, [cerâmica,arg.colante,rejunte,blocos,arg.assent,pintura]
 const R=[
 ['sala','Sala / Jantar',0,0,3.6,3.2,'#d9a36b','3,60 x 3,20','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela de alumínio de correr 2 folhas + porta semi-oca 80x210','—',32414.00,4862.10,37276.10,[12.67,76,7,52,.25,35]],
-['coz','Cozinha',3.6,0,2.2,2.8,'#e0c068','2,20 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Cerâmica 20x20 até o teto + pintura nas demais áreas','Forro em réguas de PVC','Janela maximar em alumínio','Bancada de mármore sintético com cuba + torneira cromada',19374.28,2906.14,22280.42,[6.78,41,4,28,.13,22]],
-['as','Área de Serviço',5.8,0,1.4,2.8,'#8fb8a8','1,40 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Forro em réguas de PVC','Porta de madeira frisada 60x210','Tanque de mármore sintético suspenso + torneira plástica',11443.34,1716.50,13159.84,[4.31,26,3,18,.08,15]],
-['q1','Quarto 1 (Casal)',0,3.2,3.4,3.0,'#c98b8b','3,40 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela de correr 2 folhas + porta semi-oca 80x210 c/ fechadura','—',29112.75,4366.91,33479.66,[11.22,67,6,46,.22,32]],
-['q2','Quarto 2',4.8,2.8,2.2,3.0,'#8ea7c9','2,20 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela maximar + porta frisada 70x210 c/ fechadura','—',19725.68,2958.85,22684.54,[7.26,44,4,30,.14,23]],
-['ban','Banheiro',3.6,4.0,1.2,1.8,'#7fc0c8','1,20 x 1,80','Cerâmica 35x35 sobre contrapiso autonivelante','Revestimento cerâmico 20x20 na altura inteira','Forro em réguas de PVC','Porta frisada 60x210 c/ fechadura de banheiro','Vaso, lavatório suspenso, acessórios, registros e torneiras',8423.09,1263.46,9686.56,[2.38,15,2,10,.05,12]],
-['circ','Circulação',3.6,2.8,1.2,1.2,'#b9b2a3','1,20 x 1,20','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Laje com pintura látex acrílica','—','—',3865.37,579.81,4445.17,[1.58,10,1,7,.03,8]]
+['coz','Cozinha',0,3.2,2.2,2.8,'#e0c068','2,20 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Cerâmica 20x20 até o teto + pintura nas demais áreas','Forro em réguas de PVC','Janela maximar em alumínio','Bancada de mármore sintético com cuba + torneira cromada',19374.28,2906.14,22280.42,[6.78,41,4,28,.13,22]],
+['as','Área de Serviço',2.2,3.2,1.4,2.8,'#8fb8a8','1,40 x 2,80','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Forro em réguas de PVC','Porta de madeira frisada 60x210','Tanque de mármore sintético suspenso + torneira plástica',11443.34,1716.50,13159.84,[4.31,26,3,18,.08,15]],
+['q1','Quarto 1 (Casal)',3.6,3.0,3.4,3.0,'#c98b8b','3,40 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela de correr 2 folhas + porta semi-oca 80x210 c/ fechadura','—',29112.75,4366.91,33479.66,[11.22,67,6,46,.22,32]],
+['q2','Quarto 2',3.6,0,3.4,6.6/3.4,'#8ea7c9','2,20 x 3,00','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica, 2 demãos','Laje com pintura látex acrílica','Janela maximar + porta frisada 70x210 c/ fechadura','—',19725.68,2958.85,22684.54,[7.26,44,4,30,.14,23]],
+['ban','Banheiro',4.96,6.6/3.4,2.04,3.6/3.4,'#7fc0c8','1,20 x 1,80','Cerâmica 35x35 sobre contrapiso autonivelante','Revestimento cerâmico 20x20 na altura inteira','Forro em réguas de PVC','Porta frisada 60x210 c/ fechadura de banheiro','Vaso, lavatório suspenso, acessórios, registros e torneiras',8423.09,1263.46,9686.56,[2.38,15,2,10,.05,12]],
+['circ','Circulação',3.6,6.6/3.4,1.36,3.6/3.4,'#b9b2a3','1,20 x 1,20','Cerâmica esmaltada 35x35 cm sobre contrapiso','Chapisco + emboço + pintura látex acrílica','Laje com pintura látex acrílica','—','—',3865.37,579.81,4445.17,[1.58,10,1,7,.03,8]]
 ].map(a=>({id:a[0],n:a[1],x:a[2],z:a[3],w:a[4],d:a[5],c:a[6],dim:a[7],piso:a[8],par:a[9],teto:a[10],esq:a[11],lou:a[12],dir:a[13],bdi:a[14],fin:a[15],q:a[16],area:+(a[4]*a[5]).toFixed(2)}));
-const AREA={sala:11.52,coz:6.16,as:3.92,q1:10.2,q2:6.6,ban:2.16,circ:1.44};R.forEach(r=>r.area=AREA[r.id]);
+const AREA={sala:11.52,q1:10.20,q2:6.60,coz:6.16,as:3.92,ban:2.16,circ:1.44};
+R.forEach(r=>{r.area=AREA[r.id];r.ok=Math.abs(r.w*r.d-r.area)<.005});
+const X0=Math.min(...R.map(r=>r.x)),Z0=Math.min(...R.map(r=>r.z)),X1=Math.max(...R.map(r=>r.x+r.w)),Z1=Math.max(...R.map(r=>r.z+r.d));
+const EW=+(X1-X0).toFixed(2),ED=+(Z1-Z0).toFixed(2),ASUM=+R.reduce((a,r)=>a+r.area,0).toFixed(2),DSUM=R.reduce((a,r)=>a+r.dir,0);
+const OKT=Math.abs(EW*ED-ASUM)<.005&&Math.abs(ASUM-42)<.005&&R.every(r=>r.ok);
+const nf=n=>n.toFixed(2).replace('.',',');
+const SD=['Topo','Base','Esquerda','Direita'];
+const OPEN={sala:{Base:'parcialmente aberta (cozinha)',Direita:'parcialmente aberta (circulação)'},coz:{Topo:'aberta (sala)'},circ:{Esquerda:'aberta (sala)'}};
+const eq=(a,b)=>Math.abs(a-b)<1e-6;
+const walls=r=>[['Topo',r.w,eq(r.z,Z0)],['Base',r.w,eq(r.z+r.d,Z1)],['Esquerda',r.d,eq(r.x,X0)],['Direita',r.d,eq(r.x+r.w,X1)]].map(a=>`<dt>${a[0]}</dt><dd>${nf(a[1])} m · ${(OPEN[r.id]&&OPEN[r.id][a[0]])||(a[2]?'externa':'interna')}</dd>`).join('');
 // rateio gerencial por área (sem BDI) — itens da aba Orçamento
 function comps(r){const s=r.area/42,w=r.id=='coz'||r.id=='ban'?845.14:0;
  const par=s*(11884.40+1191.63+2530.35)+w,piso=s*2300.98+(r.id=='ban'?1134.96:s*2611.72),teto=s*(2741.11+55.84),dem=r.dir-par-piso-teto;
@@ -72,17 +83,78 @@ sc.add(new THREE.HemisphereLight(0xffffff,0x998877,.75));
 const sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(8,14,5);sun.castShadow=true;sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;sc.add(sun);
 const H=2.7,T=.1,CONC=new THREE.Color('#8d8a84'),BLK=new THREE.Color('#a39d92');
 const bx=(w,h,d,m)=>{const g=new THREE.BoxGeometry(w,h,d);g.translate(0,h/2,0);const o=new THREE.Mesh(g,m);o.castShadow=o.receiveShadow=true;return o};
-const gnd=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshLambertMaterial({color:0xb9aa8c}));gnd.rotation.x=-Math.PI/2;gnd.position.set(3.6,-.11,3.1);gnd.receiveShadow=true;sc.add(gnd);
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(16,16),new THREE.MeshLambertMaterial({color:0xb9aa8c}));gnd.rotation.x=-Math.PI/2;gnd.position.set(3.5,-.11,3);gnd.receiveShadow=true;sc.add(gnd);
 const pick=[],O={};
+// Vãos: ax 'h' = parede ao longo de x (z=at); 'v' = ao longo de z (x=at). k: w=janela, d=porta; sw = lado de abertura da porta
+const OPS=[
+{ax:'h',at:0,a:.30,b:1.25,sill:1.1,head:2.1,k:'w'},
+{ax:'h',at:0,a:2.50,b:3.30,sill:0,head:2.1,k:'d',sw:1},
+{ax:'h',at:0,a:4.55,b:5.75,sill:1.1,head:2.1,k:'w'},
+{ax:'h',at:6.6/3.4,a:3.75,b:4.45,sill:0,head:2.1,k:'d',sw:-1},
+{ax:'v',at:7,a:2.15,b:2.55,sill:1.5,head:2.1,k:'w'},
+{ax:'v',at:4.96,a:2.25,b:2.85,sill:0,head:2.1,k:'d',sw:-1},
+{ax:'h',at:3,a:3.75,b:4.55,sill:0,head:2.1,k:'d',sw:1},
+{ax:'h',at:6,a:3.95,b:4.95,sill:1.1,head:2.1,k:'w'},
+{ax:'h',at:6,a:.85,b:1.45,sill:1.1,head:2.1,k:'w'},
+{ax:'h',at:6,a:2.65,b:3.25,sill:1.1,head:2.1,k:'w'},
+{ax:'h',at:3.2,a:2.30,b:2.90,sill:0,head:2.1,k:'d',sw:1}];
+function mkWall(ax,c,e0,e1,wm,id){const g=new THREE.Group(),ops=OPS.filter(o=>o.ax==ax&&Math.abs(o.at-c)<.08&&o.b>e0&&o.a<e1).sort((x,y)=>x.a-y.a);
+ const add=(a,b,y0,y1)=>{if(b-a<.005||y1-y0<.005)return;const h=ax=='h',m=bx(h?b-a:T,y1-y0,h?T:b-a,wm);m.position.set(h?(a+b)/2:c,y0,h?c:(a+b)/2);m.userData={id,part:'par'};g.add(m);pick.push(m)};
+ let cur=e0;ops.forEach(o=>{const a=Math.max(o.a,e0),b=Math.min(o.b,e1);add(cur,a,0,H);add(a,b,0,o.sill);add(a,b,o.head,H);cur=b});add(cur,e1,0,H);return g}
 R.forEach(r=>{const wm=new THREE.MeshLambertMaterial(),fm=new THREE.MeshLambertMaterial(),cx=r.x+r.w/2,cz=r.z+r.d/2;
  const f=bx(r.w,.1,r.d,fm);f.geometry.translate(0,-.1,0);f.position.set(cx,0,cz);f.userData={id:r.id,part:'piso'};
- const ws=[[r.w,T,cx,r.z+T/2],[r.w,T,cx,r.z+r.d-T/2],[T,r.d-2*T,r.x+T/2,cz],[T,r.d-2*T,r.x+r.w-T/2,cz]].map(a=>{const m=bx(a[0],H,a[1],wm);m.position.set(a[2],0,a[3]);m.userData={id:r.id,part:'par'};return m});
- sc.add(f,...ws);pick.push(f,...ws);O[r.id]={r,f,ws,wm,fm};
- const l=document.createElement('div');l.className='lb';l.textContent=r.n;$('v').appendChild(l);O[r.id].l=l;O[r.id].c=new THREE.Vector3(cx,.3,cz)});
-const fill=bx(.2,H,2.6,new THREE.MeshLambertMaterial({color:0xcfc8bb}));fill.position.set(3.5,0,4.5);sc.add(fill);
-const rm=new THREE.MeshLambertMaterial({color:0xa4472b,transparent:true,opacity:.5,side:THREE.DoubleSide}),roof=new THREE.Group(),a=Math.atan(1.1/3.4),sl=Math.hypot(3.4,1.1);
-[[-1,-a],[1,a]].forEach(([k,ang])=>{const p=new THREE.Mesh(new THREE.BoxGeometry(8,.06,sl),rm);p.position.set(3.6,H+.55,3.1+k*1.7);p.rotation.x=ang;roof.add(p)});sc.add(roof);
-let th=.9,phi=1,rad=15;const tg=new THREE.Vector3(3.6,.8,3.1);
+ const oT=!!(OPEN[r.id]&&OPEN[r.id].Topo),oB=!!(OPEN[r.id]&&OPEN[r.id].Base),L0=r.z+(oT?0:T),L1=r.z+r.d-(oB?0:T),LC=(L0+L1)/2;
+ const ws=[['h',r.z+T/2,r.x,r.x+r.w],['h',r.z+r.d-T/2,r.x,r.x+r.w],['v',r.x+T/2,L0,L1],['v',r.x+r.w-T/2,L0,L1]].filter((a,i)=>!(OPEN[r.id]&&OPEN[r.id][SD[i]])).map(a=>mkWall(a[0],a[1],a[2],a[3],wm,r.id));
+ sc.add(f,...ws);pick.push(f);O[r.id]={r,f,ws,wm,fm};
+ const l=document.createElement('div');l.className='lb';l.innerHTML=r.n+'<br>'+nf(r.w)+' × '+nf(r.d)+' m · '+nf(r.area)+' m²';$('v').appendChild(l);O[r.id].l=l;O[r.id].c=new THREE.Vector3(cx,.3,cz)});
+const EX=[{t:nf(EW)+' m',v:new THREE.Vector3((X0+X1)/2,0,Z1+.5)},{t:nf(ED)+' m',v:new THREE.Vector3(X1+.6,0,(Z0+Z1)/2)}];
+EX.forEach(o=>{const l=document.createElement('div');l.className='lb ex';l.textContent=o.t;$('v').appendChild(l);o.l=l});
+const lm=new THREE.LineBasicMaterial({color:0x888888});
+[[[X0,0,Z1+.25],[X1,0,Z1+.25]],[[X1+.25,0,Z0],[X1+.25,0,Z1]]].forEach(q=>sc.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(q.map(v=>new THREE.Vector3(...v))),lm)));
+const ESQ=[],glass=new THREE.MeshLambertMaterial({color:0x8ec9e8,transparent:true,opacity:.45}),wood=new THREE.MeshLambertMaterial({color:0x8a5a36}),AN=80*Math.PI/180;
+OPS.forEach(o=>{const w=o.b-o.a,h=o.head-o.sill,hz=o.ax=='h';let m;
+ if(o.k=='w'){m=new THREE.Mesh(new THREE.BoxGeometry(hz?w:.03,h,hz?.03:w),glass);m.position.set(hz?(o.a+o.b)/2:o.at,(o.sill+o.head)/2,hz?o.at:(o.a+o.b)/2)}
+ else{const g=new THREE.BoxGeometry(w,h,.04);g.translate(w/2,h/2,0);m=new THREE.Mesh(g,wood);m.castShadow=true;m.position.set(hz?o.a:o.at,0,hz?o.at:o.a);m.rotation.y=hz?-o.sw*AN:-Math.PI/2+o.sw*AN}
+ ESQ.push(m);sc.add(m)});
+// ---------- instalações: posições do projeto enviado; quantidades da planilha ----------
+const SYS={ag:new THREE.Group(),es:new THREE.Group(),el:new THREE.Group()};Object.values(SYS).forEach(g=>{g.visible=false;sc.add(g)});
+const V=(x,y,z)=>new THREE.Vector3(x,y,z),MB=c=>{const m=new THREE.MeshBasicMaterial({color:c});m.depthTest=false;return m};
+const addm=(g,geo,c,p)=>{const m=new THREE.Mesh(geo,MB(c));m.position.copy(p);m.renderOrder=9;g.add(m);return m};
+function pipe(g,P,c,r){P.forEach((b,i)=>{if(!i)return;const a=P[i-1],d=b.clone().sub(a),L=d.length();if(L<.01)return;const m=addm(g,new THREE.CylinderGeometry(r,r,L,8),c,a.clone().addScaledVector(d,.5));m.quaternion.setFromUnitVectors(V(0,1,0),d.normalize())})}
+const route=(g,P,c,r)=>{const o=[P[0]];for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];o.push(V(b.x,a.y,a.z),V(b.x,a.y,b.z),b)}pipe(g,o,c,r)};
+const sp=(g,p,c,r=.09)=>addm(g,new THREE.SphereGeometry(r,12,8),c,p),bx2=(g,p,c,w,h,d)=>addm(g,new THREE.BoxGeometry(w,h,d),c,p);
+{const g=SYS.ag,B=0x1f6fd1,D=0x0b2a66,U=0xaee0ff;
+ pipe(g,[V(3.5,.05,-3),V(3.5,.05,-.8),V(3.5,.9,-.8)],B,.035);bx2(g,V(3.5,.9,-.8),D,.3,.3,.2);
+ pipe(g,[V(3.5,.9,-.8),V(3.5,.9,.15),V(3.5,2.9,.15),V(4.3,2.9,.15),V(4.3,2.9,2.45)],B,.035);
+ addm(g,new THREE.CylinderGeometry(.5,.5,.65,24),0x4aa3ff,V(4.3,3.15,2.45));
+ pipe(g,[V(4.3,2.9,2.8),V(4.3,.6,2.8)],B,.035);bx2(g,V(4.3,1.3,2.8),D,.13,.13,.13);
+ pipe(g,[V(4.3,.6,2.8),V(3.5,.6,2.8),V(3.5,.6,5.85),V(.2,.6,5.85),V(.2,.6,4),V(.2,1.1,4)],B,.035);pipe(g,[V(2.9,.6,5.85),V(2.9,1,5.85)],B,.03);
+ route(g,[V(4.3,.6,2.8),V(4.98,.6,2.8),V(5.35,.6,2.05),V(5.9,.3,2.05),V(6.85,1.2,2.4),V(6.85,2.1,2.4)],B,.03);
+ bx2(g,V(4.98,.6,2.8),D,.13,.13,.13);bx2(g,V(6.85,1.2,2.4),D,.13,.13,.13);
+ [[.2,1.1,4],[2.9,1,5.85],[5.35,.6,2.05],[5.9,.3,2.05],[6.85,2.1,2.4]].forEach(a=>sp(g,V(...a),U))}
+{const g=SYS.es,C=0x8b5a2b,Y=.05,K=0x4d2f12;
+ pipe(g,[V(.15,Y,6.7),V(5.9,Y,6.7)],C,.05);pipe(g,[V(5.9,Y,2.3),V(5.9,Y,6.7)],C,.05);
+ pipe(g,[V(5.35,.4,2.05),V(5.35,Y,2.05),V(5.35,Y,2.6),V(6.4,Y,2.6)],C,.025);
+ pipe(g,[V(.2,.7,4),V(.2,Y,4),V(.2,Y,6.7)],C,.03);pipe(g,[V(2.9,.4,5.85),V(2.9,Y,5.85),V(2.9,Y,6.7)],C,.025);
+ bx2(g,V(.15,Y,6.7),K,.45,.2,.7);[2.9,5.9].forEach(x=>addm(g,new THREE.CylinderGeometry(.3,.3,.1,16),K,V(x,Y,6.7)));
+ bx2(g,V(6.4,Y,2.6),K,.2,.1,.2);bx2(g,V(2.9,Y,5.5),K,.14,.1,.14);
+ [[5.9,Y,2.3],[5.35,.4,2.05],[6.4,Y,2.6],[.2,.7,4],[2.9,.4,5.85]].forEach(a=>sp(g,V(...a),0xd9a066,.07))}
+{const g=SYS.el,Q=V(2.15,1.5,.18),Y1=0xe69f00,G=0x2e9e5b,Bl=0x2b7bd6,Pu=0x8e44ad,R=0xd62728,K=0x222222;
+ addm(g,new THREE.CylinderGeometry(.1,.1,7.5,12),0x777777,V(-1.6,3.75,-1.8));pipe(g,[V(-1.6,7.2,-1.8),V(2.15,2.9,-.3)],0x333333,.012);
+ bx2(g,V(2.15,1.5,-.2),0x555555,.3,.4,.2);bx2(g,Q,K,.3,.4,.12);
+ const L=[[1.8,1.6],[1.1,4.6],[2.9,4.6],[5.3,4.5],[5.98,2.47],[4.28,2.47],[5.3,.97]].map(a=>V(a[0],2.62,a[1]));
+ pipe(g,[Q,V(2.15,2.62,.18)],Y1,.012);route(g,[V(2.15,2.62,.18),...L],Y1,.012);L.forEach(p=>sp(g,p,0xffd84a,.12));sp(g,V(3.4,2.3,-.12),0xffd84a,.07);
+ [[3.4,1.1,.12,.14],[4.85,1.1,2.05,.14],[4.6,1.1,1.8,.09],[4.7,1.1,3.15,.09],[3.1,1.1,3.3,.11]].forEach(a=>bx2(g,V(a[0],a[1],a[2]),0x2c7fb8,a[3],.12,.05));
+ const T1=[[1.2,.3,.12],[.12,.3,1.6],[6.88,.3,.7],[6.88,.3,4.6],[6.88,.3,5.7]],T2=[[.12,1.1,4.4],[.12,1.1,5.4]],T3=[[3.5,1.1,5.5]];
+ T1.forEach(a=>bx2(g,V(...a),Pu,.09,.09,.09));T2.forEach(a=>bx2(g,V(...a),G,.09,.09,.09));T3.forEach(a=>bx2(g,V(...a),Bl,.12,.09,.09));
+ pipe(g,[Q,V(2.15,.3,.18)],Pu,.012);route(g,[V(2.15,.3,.18),...T1.map(a=>V(...a))],Pu,.012);
+ route(g,[Q,...T2.map(a=>V(...a))],G,.012);route(g,[Q,V(...T3[0]),V(3.1,1.1,3.3)],Bl,.012);
+ pipe(g,[Q,V(2.15,2,.18)],R,.015);route(g,[V(2.15,2,.18),V(6.85,2,2.4)],R,.015);bx2(g,V(6.85,2,2.4),R,.2,.2,.1)}
+const INST=`<dl><dt>Elétrica</dt><dd>7 plafons + 1 arandela 6 W · 5 interruptores · 8 tomadas + 1 combinada · 1 ponto do chuveiro · QD de 6 disjuntores · entrada aérea + poste 9 m · eletroduto DN20 51,72 m</dd><dt>Água fria</dt><dd>reservatório 500 L · cavalete + hidrômetro · 3 registros · DN25 14,52 m · DN20 13,05 m · 5 pontos (bacia, lavatório, chuveiro, pia, tanque)</dd><dt>Esgoto</dt><dd>DN100 11,47 m · DN50 2,42 m · DN40 7,52 m · 2 caixas sifonadas · 2 de inspeção · 1 de gordura</dd></dl><div class="mut">Posições conforme o projeto enviado; quantidades conforme a planilha (o projeto desenha 17 tomadas e ponto de máquina de lavar, que a planilha não tem).</div>`;
+[['bA','ag'],['bG','es'],['bX','el']].forEach(([b,k])=>$(b).onclick=e=>{SYS[k].visible=!SYS[k].visible;e.target.classList.toggle('on',SYS[k].visible)});
+const rm=new THREE.MeshLambertMaterial({color:0xa4472b,transparent:true,opacity:.5,side:THREE.DoubleSide}),roof=new THREE.Group(),a=Math.atan(1.1/3.3),sl=Math.hypot(3.3,1.1);
+[[-1,-a],[1,a]].forEach(([k,ang])=>{const p=new THREE.Mesh(new THREE.BoxGeometry(7.6,.06,sl),rm);p.position.set(3.5,H+.55,3+k*1.65);p.rotation.x=ang;roof.add(p)});sc.add(roof);
+let th=.9,phi=1,rad=15;const tg=new THREE.Vector3(3.5,.8,3);
 const setCam=()=>{cam.position.set(tg.x+rad*Math.sin(phi)*Math.sin(th),tg.y+rad*Math.cos(phi),tg.z+rad*Math.sin(phi)*Math.cos(th));cam.lookAt(tg)};
 function apply(){
  const p=i=>prog(i,day);
@@ -91,7 +163,7 @@ function apply(){
   o.ws.forEach(w=>{w.visible=p(6)>0;w.scale.y=Math.max(p(6),.001)});
   o.wm.color.copy(BLK).lerp(new THREE.Color(o.r.c),p(13));
   o.wm.emissive.setHex(sh?0x3a1d0c:0);o.fm.emissive.setHex(sh?0x3a1d0c:0)});
- fill.visible=p(6)>0;fill.scale.y=Math.max(p(6),.001);
+ ESQ.forEach(m=>m.visible=p(12)>0);
  roof.visible=roofOn&&p(7)>0;rm.opacity=.55*p(7);
  const spent=PH.reduce((s,x)=>s+x.c*prog(x.i,day),0),cur=U(S0+day-1);
  $('st').textContent=day?`Dia ${day}/${DAYS} · ${fd(S0+day-1,1)} · executado ${BRL(spent)} (${(spent/CT*100).toFixed(0)}%)`:'Antes do início · '+fd(S0,1);
@@ -99,12 +171,15 @@ function apply(){
 // ---------- painel ----------
 const bar=p=>`<div class="bar"><i style="width:${(p*100).toFixed(0)}%"></i></div>`;
 function panel(){let h='';
- if(!sel){h=`<h2>Obra inteira</h2><div class="big">${BRL(CT)}</div><div class="mut">custo direto do cronograma · ${DAYS} dias corridos · ${fd(S0,1)} → ${fd(S0+DAYS-1,1)}</div>
- <h3>Ambientes (clique no modelo ou aqui)</h3>`+R.map(r=>`<button class="row" onclick="pickRoom('${r.id}')"><div class="rt"><b>${r.n}</b><span>${BRL(r.fin)}</span></div><div class="mut">${r.area.toFixed(2).replace('.',',')} m² · ${BRL(r.fin/r.area)}/m²</div></button>`).join('')+
- `<h3>Etapas no dia ${day}</h3>`+PH.map(x=>`<div style="margin-bottom:8px"><div class="rt"><span>${x.n}</span><span>${BRL(x.c)}</span></div><div class="mut">${fd(x.a)} → ${fd(x.b)} · ${x.d} dc</div>${bar(prog(x.i,day))}</div>`).join('')}
+ if(!sel){h=`<h2>Obra inteira</h2><div class="big">${BRL(CT)}</div><div class="mut">custo total sem BDI · inclui ART e documentação · ${DAYS} dias corridos · ${fd(S0,1)} → ${fd(S0+DAYS-1,1)}</div>
+ <h3>Dimensões externas</h3><dl><dt>Largura × comprimento</dt><dd>${nf(EW)} × ${nf(ED)} m</dd><dt>Área</dt><dd>${nf(EW*ED)} m²</dd><dt>Perímetro</dt><dd>${nf(2*(EW+ED))} m</dd><dt>Conferência</dt><dd>${OKT?'✓':'✗'} soma dos ambientes ${nf(ASUM)} m² = área externa ${nf(EW*ED)} m²</dd></dl>
+ <h3>Ambientes (clique no modelo ou aqui)</h3>`+R.map(r=>`<button class="row" onclick="pickRoom('${r.id}')"><div class="rt"><b>${r.n}</b><span>${BRL(r.dir)}</span></div><div class="mut">${nf(r.w)} × ${nf(r.d)} m · ${nf(r.area)} m² · ${BRL(r.dir/r.area)}/m²</div></button>`).join('')+`<div class="mut">Valores por ambiente: apropriação sem BDI (soma ${BRL(DSUM)}); a diferença até o total da obra (${BRL(CT-DSUM)}) não está ratada por ambiente. A altura das paredes no 3D (2,70 m) é só visual. Quarto 2, circulação e banheiro tiveram as dimensões ajustadas à planta; as áreas foram mantidas.</div>`+
+ `<h3>Instalações (quantidades da planilha)</h3>${INST}<h3>Etapas no dia ${day}</h3>`+PH.map(x=>`<div style="margin-bottom:8px"><div class="rt"><span>${x.n}</span><span>${BRL(x.c)}</span></div><div class="mut">${fd(x.a)} → ${fd(x.b)} · ${x.d} dc</div>${bar(prog(x.i,day))}</div>`).join('')}
  else{const r=R.find(z=>z.id==sel),cs=comps(r);
- h=`<button onclick="pickRoom(null)">← Obra inteira</button><h2 style="margin-top:10px">${r.n}</h2><div class="mut">${r.dim} m · ${r.area.toFixed(2).replace('.',',')} m²</div>
- <div class="big">${BRL(r.fin)}</div><div class="mut">direto ${BRL(r.dir)} + BDI ${BRL(r.bdi)} · ${BRL(r.fin/r.area)}/m²</div><h3>Onde foi o dinheiro (sem BDI)</h3>`+
+ h=`<button onclick="pickRoom(null)">← Obra inteira</button><h2 style="margin-top:10px">${r.n}</h2>
+ <div class="big">${BRL(r.dir)}</div><div class="mut">custo sem BDI · ${BRL(r.dir/r.area)}/m²</div>
+ <h3>Dimensões</h3><dl><dt>Largura × comprimento</dt><dd>${nf(r.w)} × ${nf(r.d)} m</dd><dt>Área</dt><dd>${nf(r.w*r.d)} m² ${r.ok?'✓':'✗'} (planta: ${nf(r.area)} m²)</dd><dt>Perímetro</dt><dd>${nf(2*(r.w+r.d))} m</dd></dl>
+ <h3>Paredes (comprimento)</h3><dl>${walls(r)}</dl><h3>Onde foi o dinheiro (sem BDI)</h3>`+
  cs.map(c=>{const pr=c[4].reduce((s,i)=>s+prog(i,day),0)/c[4].length,ph2=c[4].map(i=>`${ph(i).n} ${fd(ph(i).a)}–${fd(ph(i).b)}`).join(' · ');
   return `<div class="row ${part==c[0]?'sel':''}"><div class="rt"><b>${c[1]}</b><span>${BRL(c[2])}</span></div><div class="mut">${c[3]}</div><div class="mut">${ph2}</div>${bar(pr)}<div class="mut">executado hoje: ${BRL(c[2]*pr)} (${(pr*100).toFixed(0)}%)</div></div>`}).join('')+
  `<div class="mut">Paredes, piso e teto = rateio gerencial por área; o restante fecha com o custo direto do ambiente.</div>
@@ -120,7 +195,7 @@ cv.addEventListener('pointermove',e=>{const o=P.get(e.pointerId);if(!o)return;co
 cv.addEventListener('pointerup',e=>{const one=P.size==1;P.delete(e.pointerId);
  if(one&&dn&&Math.hypot(e.clientX-dn[0],e.clientY-dn[1])<6&&Date.now()-dn[2]<600){const b=cv.getBoundingClientRect(),rc=new THREE.Raycaster();
   rc.setFromCamera(new THREE.Vector2((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1),cam);
-  const h=rc.intersectObjects(pick.filter(m=>m.visible))[0];h?pickRoom(h.object.userData.id,h.object.userData.part):pickRoom(null)}});
+  const h=rc.intersectObjects(pick.filter(m=>m.visible&&m.parent.visible))[0];h?pickRoom(h.object.userData.id,h.object.userData.part):pickRoom(null)}});
 cv.addEventListener('pointercancel',e=>P.delete(e.pointerId));
 cv.addEventListener('wheel',e=>{e.preventDefault();rad=Math.max(5,Math.min(30,rad*(1+e.deltaY*.001)))},{passive:false});
 $('bR').onclick=e=>{roofOn=!roofOn;e.target.classList.toggle('on',roofOn);apply()};
@@ -132,6 +207,6 @@ let tm=null;$('pl').onclick=()=>{if(tm){clearInterval(tm);tm=null;$('pl').textCo
 function size(){const b=$('v').getBoundingClientRect();rd.setPixelRatio(Math.min(devicePixelRatio,2));rd.setSize(b.width,b.height,false);cam.aspect=b.width/b.height;cam.updateProjectionMatrix()}
 new ResizeObserver(size).observe($('v'));size();
 (function loop(){requestAnimationFrame(loop);setCam();rd.render(sc,cam);const b=$('v').getBoundingClientRect();
- Object.values(O).forEach(o=>{o.l.style.display=lblOn&&o.f.visible?'block':'none';const v=o.c.clone().project(cam);o.l.style.left=(v.x+1)/2*b.width+'px';o.l.style.top=(1-v.y)/2*b.height+'px'})})();
+ Object.values(O).forEach(o=>{o.l.style.display=lblOn&&o.f.visible?'block':'none';const v=o.c.clone().project(cam);o.l.style.left=(v.x+1)/2*b.width+'px';o.l.style.top=(1-v.y)/2*b.height+'px'});EX.forEach(o=>{o.l.style.display=lblOn?'block':'none';const v=o.v.clone().project(cam);o.l.style.left=(v.x+1)/2*b.width+'px';o.l.style.top=(1-v.y)/2*b.height+'px'})})();
 apply();
 </script></body></html>
